@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DocShowRisk</title>
+  <style>
+    /* 基础与现代化排版样式 */
+    body {
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f7fa;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #333;
+    }
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    header h1 {
+      margin-bottom: 10px;
+      font-size: 2em;
+    }
+    /* 语言切换区域：使用 SVG 国旗图标 */
+    #languageSwitcher {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+    }
+    .lang-btn {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 50%;
+      padding: 5px;
+      margin: 0 5px;
+      cursor: pointer;
+      width: 32px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
+    }
+    .lang-btn:hover {
+      background: #f0f0f0;
+    }
+    .lang-btn img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    /* 标签与输入 */
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: 500;
+    }
+    input[type="text"],
+    select {
+      padding: 8px;
+      font-size: 1em;
+      width: 100%;
+      max-width: 300px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .slider-container {
+      margin: 10px 0;
+    }
+    .slider-label {
+      margin-bottom: 5px;
+    }
+    .toggle-group {
+      margin: 10px 0;
+    }
+    /* 单选按钮与复选框内联排列 */
+    .toggle-group span,
+    .toggle-group input,
+    .toggle-group label {
+      display: inline-block;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+    button {
+      padding: 10px 15px;
+      font-size: 1em;
+      cursor: pointer;
+      border: none;
+      background-color: #007BFF;
+      color: #fff;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    
+    /* 布局：电脑版分三栏，手机端堆叠 */
+    .layout {
+      display: flex;
+      flex-direction: column;
+    }
+    .params-section, .results-section, .spin-section {
+      margin-bottom: 20px;
+    }
+    @media (min-width: 768px) {
+      .layout {
+        flex-direction: row;
+      }
+      .params-section {
+        flex: 1;
+        margin-right: 20px;
+      }
+      .results-section {
+        flex: 2;
+        margin-right: 20px;
+      }
+      .spin-section {
+        flex: 1;
+      }
+    }
+    
+    /* 图示网格样式 */
+    .diagram-grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 2px;
+      max-width: 300px;
+      margin-bottom: 10px;
+    }
+    .person {
+      width: 20px;
+      height: 20px;
+    }
+    
+    /* 图例样式 */
+    .legend {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+    }
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      margin-right: 5px;
+      border: 1px solid #ccc;
+    }
+    
+    /* Fine Print 免责声明 */
+    .fine-print {
+      font-size: 0.8em;
+      color: #666;
+      margin-top: 20px;
+      border-top: 1px solid #ccc;
+      padding-top: 10px;
+      text-align: center;
+    }
+    
+    /* 打印样式（适合 Letter/A4 纸） */
+    @media print {
+      @page { size: Letter; margin: 1in; }
+      body { margin: 0; }
+      header, .params-section, .toggle-group, button, #languageSwitcher, select, .spin-section { display: none; }
+      .container { margin: 0; width: 100%; box-shadow: none; }
+      .diagram-grid {
+         max-width: none;
+         grid-template-columns: repeat(10, 1fr);
+      }
+      .fine-print { display: block; }
+    }
+    
+    /* 免责声明模态框样式 */
+    #disclaimerModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    #disclaimerModal .modal-content {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 500px;
+      text-align: center;
+    }
+    
+    /* 转盘部分样式 */
+    #wheelCanvas {
+      border: 1px solid #ccc;
+      margin: 20px auto;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <!-- 免责声明模态框（页面加载时显示，根据语言变化） -->
+  <div id="disclaimerModal">
+    <div class="modal-content">
+      <h2 id="modalDisclaimerTitle">Disclaimer</h2>
+      <p id="modalDisclaimerText">This tool is for demonstration and risk visualization purposes only and does not constitute medical advice. Please consult your physician for personalized advice. By using this tool, you agree that we are not responsible for any outcomes arising from its use.</p>
+      <button id="agreeButton">I have read and agree</button>
+    </div>
+  </div>
+  
+  <div class="container">
+    <header>
+      <h1 id="title">DocShowRisk</h1>
+      <!-- 语言切换：使用 SVG 国旗图标 -->
+      <div id="languageSwitcher">
+        <button class="lang-btn" data-lang="en" title="English">
+          <img src="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.4.6/flags/4x3/us.svg" alt="English">
+        </button>
+        <button class="lang-btn" data-lang="zh" title="中文">
+          <img src="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.4.6/flags/4x3/cn.svg" alt="中文">
+        </button>
+        <button class="lang-btn" data-lang="es" title="Español">
+          <img src="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.4.6/flags/4x3/es.svg" alt="Español">
+        </button>
+      </div>
+    </header>
+    
+    <!-- 整体布局：参数区（左侧）、结果区（中间）和转盘模拟区（右侧，可选） -->
+    <div class="layout">
+      <!-- 参数区 -->
+      <div class="params-section">
+        <!-- 模板选择 -->
+        <label id="labelTemplate" for="templateSelect">Select Template:</label>
+        <select id="templateSelect">
+          <option value="">-- Custom --</option>
+          <option value="template1">Bladder Cancer: Adjuvant Nivolumab</option>
+          <option value="template2">Breast Cancer: Adjuvant Chemotherapy</option>
+        </select>
+        
+        <!-- 干预名称 -->
+        <label id="labelIntervention" for="interventionName">Intervention Name:</label>
+        <input type="text" id="interventionName" placeholder="e.g. Adjuvant Nivolumab" value="Adjuvant Nivolumab">
+        
+        <!-- 结局名称 -->
+        <label id="labelOutcome" for="outcomeName">Outcome Name:</label>
+        <input type="text" id="outcomeName" placeholder="e.g. Recurrence" value="Recurrence">
+        
+        <!-- 基线值滑动条 -->
+        <div class="slider-container">
+          <div class="slider-label">
+            <span id="labelBaselineRisk">Baseline</span> (<span id="baselineRiskValue">40%</span>)
+          </div>
+          <input type="range" id="baselineRisk" min="0" max="1" step="0.01" value="0.40">
+        </div>
+        
+        <!-- 风险比滑动条 -->
+        <div class="slider-container">
+          <div class="slider-label">
+            <span id="labelHazardRatio">Hazard Ratio</span> (<span id="hazardRatioValue">70%</span>)
+          </div>
+          <input type="range" id="hazardRatio" min="0" max="1" step="0.01" value="0.70">
+        </div>
+        
+        <!-- 副作用值滑动条 -->
+        <div class="slider-container">
+          <div class="slider-label">
+            <span id="labelSideEffectRisk">Side Effects</span> (<span id="sideEffectRiskValue">20%</span>)
+          </div>
+          <input type="range" id="sideEffectRisk" min="0" max="1" step="0.01" value="0.20">
+        </div>
+        
+        <!-- 展示方式切换 -->
+        <div class="toggle-group">
+          <span id="labelDisplayMode">Display Mode:</span>
+          <input type="radio" name="displayMode" id="displayPercentage" value="percentage" checked>
+          <label for="displayPercentage">Percentage</label>
+          <input type="radio" name="displayMode" id="displayCount" value="count">
+          <label for="displayCount">Count</label>
+        </div>
+        
+        <!-- 转盘模拟显示开关 -->
+        <div class="toggle-group">
+          <input type="checkbox" id="toggleSpinSimulation">
+          <label for="toggleSpinSimulation" id="toggleSpinLabel">Show Spin Simulation</label>
+        </div>
+      </div>
+      
+      <!-- 结果区 -->
+      <div class="results-section">
+        <div id="visualization">
+          <h2 id="resultTitle">Results</h2>
+          <!-- 获益（治疗结局）图示 -->
+          <div id="benefitSection">
+            <h3 id="benefitDiagramTitle">Benefit</h3>
+            <div id="combinedDiagram" class="diagram-grid"></div>
+            <div id="combinedDisplay" style="white-space: pre-line; font-weight: 500;"></div>
+            <!-- 图例 -->
+            <div id="combinedLegend" class="legend"></div>
+          </div>
+          <!-- 副作用图示 -->
+          <div id="sideEffectsSection">
+            <h3 id="sideEffectsTitle">Side Effects</h3>
+            <div id="sideEffectsDiagram" class="diagram-grid"></div>
+            <div id="sideEffectsDisplay" style="font-weight: 500;"></div>
+            <!-- 图例 -->
+            <div id="sideEffectsLegend" class="legend"></div>
+          </div>
+          
+          <button id="printButton">Print</button>
+        </div>
+      </div>
+      
+      <!-- 转盘模拟区（初始隐藏，可选） -->
+      <div class="spin-section" id="spinSection" style="display: none;">
+        <h3 id="spinSimulationTitle">Spin Simulation</h3>
+        <label id="spinSelectLabel" for="spinModeSelect">Select simulation:</label>
+        <select id="spinModeSelect">
+          <!-- 选项内容由脚本根据语言更新 -->
+        </select>
+        <canvas id="wheelCanvas" width="300" height="300"></canvas>
+        <button id="spinButton">Spin the Wheel</button>
+        <div id="spinResult" style="margin-top:10px; font-weight: bold;"></div>
+        <!-- 转盘图例 -->
+        <div id="spinLegend" class="legend"></div>
+      </div>
+    </div>
+    <!-- Fine Print 免责声明 -->
+    <div class="fine-print" id="finePrint">
+      Disclaimer: This visualization tool is for informational purposes only and does not constitute medical advice. The information presented is general in nature and may not apply to your specific situation. Always consult your qualified healthcare provider for personalized medical advice and treatment decisions. Do not disregard professional medical advice or delay seeking it because of information provided here. By using this tool, you acknowledge these limitations and agree that we are not liable for any decisions made based on this information.
+    </div>
+  </div>
+  
+  <script>
+    /***********************
+     * 国际化文本字典
+     ***********************/
+    const texts = {
+      en: {
+        title: "DocShowRisk",
+        labelTemplate: "Select Template:",
+        labelIntervention: "Intervention Name:",
+        labelOutcome: "Outcome Name:",
+        labelBaselineRisk: "Baseline",
+        labelHazardRatio: "Hazard Ratio",
+        labelSideEffectRisk: "Side Effects",
+        labelDisplayMode: "Display Mode:",
+        displayPercentage: "Percentage",
+        displayCount: "Count",
+        resultTitle: "Results",
+        resultTitleWithOutcome: "Results for {0}",
+        benefitDiagramTitle: "Benefit",
+        sideEffectsTitle: "Side Effects",
+        printButton: "Print",
+        baselineLabel_survival: "Baseline {0}: ",
+        afterTreatmentLabel_survival: "After Treatment {0}: ",
+        improvementLabel: "Absolute Improvement: ",
+        baselineLabel_default: "Baseline {0}: ",
+        afterTreatmentLabel_default: "After Treatment {0}: ",
+        reductionLabel: "Absolute Reduction: ",
+        finePrint: "Disclaimer: This visualization tool is for informational purposes only and does not constitute medical advice. The information presented is general in nature and may not apply to your specific situation. No physician-patient relationship is created through use of this tool. Always consult your qualified healthcare provider for personalized medical advice and treatment decisions. Do not disregard professional medical advice or delay seeking it because of information provided here. By using this tool, you acknowledge these limitations and agree that we are not liable for any decisions made based on this information.",
+        // 免责声明弹窗
+        modalDisclaimerTitle: "Disclaimer",
+        modalDisclaimerText: "This tool is for demonstration and risk visualization purposes only and does not constitute medical advice. Please consult your physician for personalized advice. By using this tool, you agree that we are not responsible for any outcomes arising from its use.",
+        agreeButtonText: "I have read and agree",
+        // 转盘模拟相关
+        spinSimulationTitle: "Spin Simulation",
+        spinSelectLabel: "Select simulation:",
+        spinButton: "Spin the Wheel",
+        spinResultPrefix: "Result: ",
+        spinOptionTreatment: "Treatment Outcome",
+        spinOptionSideEffect: "Side Effects",
+        // 图例文字（获益图示）
+        legendTreatmentAfter: "After Treatment",
+        legendTreatmentSaved: "Benefit",
+        // 新增：治疗转盘第三扇区
+        legendTreatmentNotAtRisk: "Not at Risk",
+        legendSideEffectYes: "Side Effects",
+        legendSideEffectNo: "No Side Effects",
+        // 开关文字
+        toggleSpinSimulation: "Show Spin Simulation"
+      },
+      zh: {
+        title: "风险展示",
+        labelTemplate: "选择模板：",
+        labelIntervention: "干预名称：",
+        labelOutcome: "结局名称：",
+        labelBaselineRisk: "基线",
+        labelHazardRatio: "风险比",
+        labelSideEffectRisk: "副作用",
+        labelDisplayMode: "显示方式：",
+        displayPercentage: "百分比",
+        displayCount: "人数比例",
+        resultTitle: "结果",
+        resultTitleWithOutcome: "{0}的结果",
+        benefitDiagramTitle: "获益",
+        sideEffectsTitle: "副作用",
+        printButton: "打印",
+        baselineLabel_survival: "基线{0}：",
+        afterTreatmentLabel_survival: "治疗后{0}：",
+        improvementLabel: "绝对改善：",
+        baselineLabel_default: "基线{0}：",
+        afterTreatmentLabel_default: "治疗后{0}：",
+        reductionLabel: "绝对降低：",
+        finePrint: "免责声明：本工具仅用于风险可视化，不构成医疗建议。请咨询您的医生以获得个性化建议。",
+        modalDisclaimerTitle: "免责声明",
+        modalDisclaimerText: "本工具仅用于展示和风险可视化，不构成医疗建议。请咨询您的医生以获得个性化建议。使用本工具即表示您认可并同意，我们对因使用本工具而产生的任何后果不承担任何责任。",
+        agreeButtonText: "我已阅读并同意",
+        spinSimulationTitle: "转盘模拟",
+        spinSelectLabel: "选择模拟项目:",
+        spinButton: "旋转转盘",
+        spinResultPrefix: "结果:",
+        spinOptionTreatment: "治疗结局",
+        spinOptionSideEffect: "副作用",
+        legendTreatmentAfter: "治疗后结局",
+        legendTreatmentSaved: "避免复发",
+        legendTreatmentNotAtRisk: "无风险",
+        legendSideEffectYes: "出现副作用",
+        legendSideEffectNo: "无副作用",
+        toggleSpinSimulation: "显示转盘模拟"
+      },
+      es: {
+        title: "MostrarRiesgo",
+        labelTemplate: "Seleccionar plantilla:",
+        labelIntervention: "Nombre de la intervención:",
+        labelOutcome: "Nombre del resultado:",
+        labelBaselineRisk: "Base",
+        labelHazardRatio: "Razón de riesgo",
+        labelSideEffectRisk: "Efectos secundarios",
+        labelDisplayMode: "Modo de visualización:",
+        displayPercentage: "Porcentaje",
+        displayCount: "Número de personas",
+        resultTitle: "Resultados",
+        resultTitleWithOutcome: "Resultados para {0}",
+        benefitDiagramTitle: "Beneficio",
+        sideEffectsTitle: "Efectos secundarios",
+        printButton: "Imprimir",
+        baselineLabel_survival: "Base {0}: ",
+        afterTreatmentLabel_survival: "Después del tratamiento {0}: ",
+        improvementLabel: "Mejora absoluta: ",
+        baselineLabel_default: "Base {0}: ",
+        afterTreatmentLabel_default: "Después del tratamiento {0}: ",
+        reductionLabel: "Reducción absoluta: ",
+        finePrint: "Aviso legal: Esta herramienta es solo para visualizar riesgos y no constituye asesoramiento médico. Consulte a su médico para recomendaciones personalizadas.",
+        modalDisclaimerTitle: "Aviso legal",
+        modalDisclaimerText: "Esta herramienta es solo para visualizar riesgos y no constituye asesoramiento médico. Consulte a su médico para obtener recomendaciones personalizadas. Al utilizar esta herramienta, usted acepta que no somos responsables de las consecuencias derivadas de su uso.",
+        agreeButtonText: "He leído y acepto",
+        spinSimulationTitle: "Simulación de ruleta",
+        spinSelectLabel: "Seleccione simulación:",
+        spinButton: "Girar la ruleta",
+        spinResultPrefix: "Resultado: ",
+        spinOptionTreatment: "Resultado del tratamiento",
+        spinOptionSideEffect: "Efectos secundarios",
+        legendTreatmentAfter: "Después del tratamiento",
+        legendTreatmentSaved: "Beneficio",
+        legendTreatmentNotAtRisk: "No en riesgo",
+        legendSideEffectYes: "Efectos secundarios",
+        legendSideEffectNo: "Sin efectos secundarios",
+        toggleSpinSimulation: "Mostrar simulación de ruleta"
+      }
+    };
+    let currentLanguage = 'en';
+    let currentDisplayMode = 'percentage'; // 默认显示模式
+    
+    // 更新页面所有文本（包括免责声明、转盘区域及图例）
+    function updateLanguageTexts() {
+      const t = texts[currentLanguage];
+      document.getElementById('title').innerText = t.title;
+      document.getElementById('labelTemplate').innerText = t.labelTemplate;
+      document.getElementById('labelIntervention').innerText = t.labelIntervention;
+      document.getElementById('labelOutcome').innerText = t.labelOutcome;
+      document.getElementById('labelBaselineRisk').innerText = t.labelBaselineRisk;
+      document.getElementById('labelHazardRatio').innerText = t.labelHazardRatio;
+      document.getElementById('labelSideEffectRisk').innerText = t.labelSideEffectRisk;
+      document.getElementById('labelDisplayMode').innerText = t.labelDisplayMode;
+      document.querySelector('label[for="displayPercentage"]').innerText = t.displayPercentage;
+      document.querySelector('label[for="displayCount"]').innerText = t.displayCount;
+      document.getElementById('benefitDiagramTitle').innerText = t.benefitDiagramTitle;
+      document.getElementById('sideEffectsTitle').innerText = t.sideEffectsTitle;
+      document.getElementById('printButton').innerText = t.printButton;
+      document.getElementById('finePrint').innerText = t.finePrint;
+      
+      // 免责声明模态框更新
+      document.getElementById('modalDisclaimerTitle').innerText = t.modalDisclaimerTitle;
+      document.getElementById('modalDisclaimerText').innerText = t.modalDisclaimerText;
+      document.getElementById('agreeButton').innerText = t.agreeButtonText;
+      
+      // 转盘模拟区域更新
+      document.getElementById('spinSimulationTitle').innerText = t.spinSimulationTitle;
+      document.getElementById('spinSelectLabel').innerText = t.spinSelectLabel;
+      document.getElementById('spinButton').innerText = t.spinButton;
+      document.getElementById('spinModeSelect').innerHTML = `
+        <option value="treatment">${t.spinOptionTreatment}</option>
+        <option value="sideEffect">${t.spinOptionSideEffect}</option>
+      `;
+      document.getElementById('toggleSpinLabel').innerText = t.toggleSpinSimulation;
+      
+      // 更新结果标题
+      const outcome = document.getElementById('outcomeName').value.trim();
+      if (outcome) {
+        document.getElementById('resultTitle').innerText = t.resultTitleWithOutcome.replace("{0}", outcome);
+      } else {
+        document.getElementById('resultTitle').innerText = t.resultTitle;
+      }
+      
+      updateLegends();
+      updateSpinLegend();
+      drawWheel();
+    }
+    
+    // 语言切换
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        currentLanguage = this.getAttribute('data-lang');
+        updateLanguageTexts();
+        updateVisualization();
+      });
+    });
+    
+    /***********************
+     * 模板处理
+     ***********************/
+    const templates = {
+      "template1": {
+        interventionName: "Adjuvant Nivolumab",
+        outcomeName: "Recurrence Rate",
+        baselineRisk: 0.40,
+        hazardRatio: 0.70,
+        sideEffectRisk: 0.20
+      },
+      "template2": {
+        interventionName: "Adjuvant Chemotherapy",
+        outcomeName: "Overall Survival Rate",
+        baselineRisk: 0.54,
+        hazardRatio: 0.48,
+        sideEffectRisk: 0.25
+      }
+    };
+    document.getElementById('templateSelect').addEventListener('change', function() {
+      const key = this.value;
+      if (templates[key]) {
+        const tpl = templates[key];
+        document.getElementById('interventionName').value = tpl.interventionName;
+        document.getElementById('outcomeName').value = tpl.outcomeName;
+        document.getElementById('baselineRisk').value = tpl.baselineRisk;
+        document.getElementById('hazardRatio').value = tpl.hazardRatio;
+        document.getElementById('sideEffectRisk').value = tpl.sideEffectRisk;
+        updateSliderDisplays();
+        updateVisualization();
+        drawWheel();
+      }
+    });
+    
+    /***********************
+     * 滑动条数值更新
+     ***********************/
+    function updateSliderDisplays() {
+      const baselineVal = parseFloat(document.getElementById('baselineRisk').value);
+      const hazardVal = parseFloat(document.getElementById('hazardRatio').value);
+      const sideEffectVal = parseFloat(document.getElementById('sideEffectRisk').value);
+      document.getElementById('baselineRiskValue').innerText = (baselineVal * 100).toFixed(0) + '%';
+      document.getElementById('hazardRatioValue').innerText = (hazardVal * 100).toFixed(0) + '%';
+      document.getElementById('sideEffectRiskValue').innerText = (sideEffectVal * 100).toFixed(0) + '%';
+    }
+    document.getElementById('baselineRisk').addEventListener('input', function() {
+      updateSliderDisplays();
+      updateVisualization();
+      drawWheel();
+    });
+    document.getElementById('hazardRatio').addEventListener('input', function() {
+      updateSliderDisplays();
+      updateVisualization();
+      drawWheel();
+    });
+    document.getElementById('sideEffectRisk').addEventListener('input', function() {
+      updateSliderDisplays();
+      updateVisualization();
+      drawWheel();
+    });
+    document.getElementById('outcomeName').addEventListener('input', function() {
+      updateVisualization();
+    });
+    
+    // 展示方式切换
+    document.querySelectorAll('input[name="displayMode"]').forEach(radio => {
+      radio.addEventListener('change', function() {
+        currentDisplayMode = this.value;
+        updateVisualization();
+      });
+    });
+    
+    /***********************
+     * 图示绘制函数
+     ***********************/
+    function createPersonIcon(color) {
+      const svgNS = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(svgNS, "svg");
+      svg.setAttribute("width", "20");
+      svg.setAttribute("height", "20");
+      svg.setAttribute("viewBox", "0 0 64 64");
+      const circle = document.createElementNS(svgNS, "circle");
+      circle.setAttribute("cx", "32");
+      circle.setAttribute("cy", "16");
+      circle.setAttribute("r", "12");
+      circle.setAttribute("fill", color);
+      svg.appendChild(circle);
+      const path = document.createElementNS(svgNS, "path");
+      path.setAttribute("d", "M16 52c0-8.84 7.16-16 16-16s16 7.16 16 16");
+      path.setAttribute("stroke", color);
+      path.setAttribute("stroke-width", "4");
+      path.setAttribute("fill", "none");
+      svg.appendChild(path);
+      return svg;
+    }
+    
+    function createDiagram(container, configArray, total = 100) {
+      container.innerHTML = '';
+      let currentCount = 0;
+      configArray.forEach(segment => {
+        for (let i = 0; i < segment.count; i++) {
+          const person = createPersonIcon(segment.color);
+          const cell = document.createElement("div");
+          cell.classList.add("person");
+          cell.appendChild(person);
+          container.appendChild(cell);
+          currentCount++;
+        }
+      });
+      for (let i = currentCount; i < total; i++) {
+        const person = createPersonIcon("lightgreen");
+        const cell = document.createElement("div");
+        cell.classList.add("person");
+        cell.appendChild(person);
+        container.appendChild(cell);
+      }
+    }
+    
+    /***********************
+     * 更新图示显示及图例
+     ***********************/
+    function updateVisualization() {
+      const baselineRisk = parseFloat(document.getElementById('baselineRisk').value);
+      const hazardRatio = parseFloat(document.getElementById('hazardRatio').value);
+      const sideEffectRisk = parseFloat(document.getElementById('sideEffectRisk').value);
+      const totalIcons = 100;
+      
+      let outcome = document.getElementById('outcomeName').value.trim();
+      let baselineLabel, postLabel, diffLabel;
+      if (outcome) {
+        if (outcome.toLowerCase().includes("survival")) {
+          baselineLabel = texts[currentLanguage].baselineLabel_survival.replace("{0}", outcome);
+          postLabel = texts[currentLanguage].afterTreatmentLabel_survival.replace("{0}", outcome);
+          diffLabel = texts[currentLanguage].improvementLabel;
+        } else {
+          baselineLabel = texts[currentLanguage].baselineLabel_default.replace("{0}", outcome);
+          postLabel = texts[currentLanguage].afterTreatmentLabel_default.replace("{0}", outcome);
+          diffLabel = texts[currentLanguage].reductionLabel;
+        }
+      } else {
+        baselineLabel = texts[currentLanguage].baselineLabel_default.replace("{0}", "");
+        postLabel = texts[currentLanguage].afterTreatmentLabel_default.replace("{0}", "");
+        diffLabel = texts[currentLanguage].reductionLabel;
+      }
+      
+      let baselineCount = Math.round(baselineRisk * totalIcons);
+      let postCount = Math.round(baselineRisk * hazardRatio * totalIcons);
+      if (postCount > baselineCount) postCount = baselineCount;
+      let savedCount = baselineCount - postCount;
+      
+      const configArray = [
+        { count: postCount, color: "#e74c3c" },
+        { count: savedCount, color: "#27ae60" }
+      ];
+      createDiagram(document.getElementById('combinedDiagram'), configArray, totalIcons);
+      
+      if (currentDisplayMode === "percentage") {
+        document.getElementById('combinedDisplay').innerText =
+          baselineLabel + (baselineRisk * 100).toFixed(0) + "%\n" +
+          postLabel + (baselineRisk * hazardRatio * 100).toFixed(0) + "%\n" +
+          diffLabel + ((baselineRisk - baselineRisk * hazardRatio) * 100).toFixed(0) + "%";
+      } else {
+        document.getElementById('combinedDisplay').innerText =
+          baselineLabel + baselineCount + "/100\n" +
+          postLabel + postCount + "/100\n" +
+          diffLabel + savedCount + "/100";
+      }
+      
+      let sideCount = Math.round(sideEffectRisk * totalIcons);
+      createDiagram(document.getElementById('sideEffectsDiagram'), [{ count: sideCount, color: "orange" }], totalIcons);
+      if (currentDisplayMode === "percentage") {
+        document.getElementById('sideEffectsDisplay').innerText =
+          texts[currentLanguage].labelSideEffectRisk + ": " + (sideEffectRisk * 100).toFixed(0) + "%";
+      } else {
+        document.getElementById('sideEffectsDisplay').innerText =
+          texts[currentLanguage].labelSideEffectRisk + ": " + sideCount + "/100";
+      }
+      
+      if (outcome) {
+        document.getElementById('resultTitle').innerText = texts[currentLanguage].resultTitleWithOutcome.replace("{0}", outcome);
+      } else {
+        document.getElementById('resultTitle').innerText = texts[currentLanguage].resultTitle;
+      }
+      
+      updateLegends();
+      updateSpinLegend();
+    }
+    
+    // 更新获益和副作用图例（多语言）
+    function updateLegends() {
+      const t = texts[currentLanguage];
+      let outcome = document.getElementById('outcomeName').value.trim();
+      let treatmentAfterText, treatmentSavedText;
+      if (outcome) {
+        if (outcome.toLowerCase().includes("recurrence")) {
+          treatmentAfterText = "After Treatment " + outcome;
+          treatmentSavedText = "Avoided " + outcome;
+        } else if (outcome.toLowerCase().includes("survival")) {
+          treatmentAfterText = "After Treatment " + outcome;
+          treatmentSavedText = "Survival Benefit";
+        } else {
+          treatmentAfterText = t.legendTreatmentAfter;
+          treatmentSavedText = t.legendTreatmentSaved;
+        }
+      } else {
+          treatmentAfterText = t.legendTreatmentAfter;
+          treatmentSavedText = t.legendTreatmentSaved;
+      }
+      
+      document.getElementById('combinedLegend').innerHTML = `
+        <div class="legend-item"><span class="legend-color" style="background: #e74c3c;"></span> ${treatmentAfterText}</div>
+        <div class="legend-item"><span class="legend-color" style="background: #27ae60;"></span> ${treatmentSavedText}</div>
+        <div class="legend-item"><span class="legend-color" style="background: lightgreen;"></span> ${t.legendTreatmentNotAtRisk}</div>
+      `;
+      
+      document.getElementById('sideEffectsLegend').innerHTML = `
+        <div class="legend-item"><span class="legend-color" style="background: orange;"></span> ${t.legendSideEffectYes}</div>
+        <div class="legend-item"><span class="legend-color" style="background: lightgreen;"></span> ${t.legendSideEffectNo}</div>
+      `;
+    }
+    
+    // 更新转盘模拟图例（根据模拟类型和多语言）
+    function updateSpinLegend() {
+      const t = texts[currentLanguage];
+      const spinMode = document.getElementById('spinModeSelect').value;
+      let legendHTML = "";
+      if (spinMode === "treatment") {
+        // 计算治疗结局的三个概率与标签
+        const baselineRisk = parseFloat(document.getElementById('baselineRisk').value);
+        const hazardRatio = parseFloat(document.getElementById('hazardRatio').value);
+        let outcome = document.getElementById('outcomeName').value.trim();
+        let treatmentAfterLabel, treatmentSavedLabel;
+        if (outcome) {
+          if (outcome.toLowerCase().includes("recurrence")) {
+            treatmentAfterLabel = "After Treatment " + outcome;
+            treatmentSavedLabel = "Avoided " + outcome;
+          } else if (outcome.toLowerCase().includes("survival")) {
+            treatmentAfterLabel = "After Treatment " + outcome;
+            treatmentSavedLabel = "Survival Benefit";
+          } else {
+            treatmentAfterLabel = t.legendTreatmentAfter;
+            treatmentSavedLabel = t.legendTreatmentSaved;
+          }
+        } else {
+            treatmentAfterLabel = t.legendTreatmentAfter;
+            treatmentSavedLabel = t.legendTreatmentSaved;
+        }
+        legendHTML = `
+          <div class="legend-item"><span class="legend-color" style="background: #e74c3c;"></span> ${treatmentAfterLabel}</div>
+          <div class="legend-item"><span class="legend-color" style="background: #27ae60;"></span> ${treatmentSavedLabel}</div>
+          <div class="legend-item"><span class="legend-color" style="background: lightgreen;"></span> ${t.legendTreatmentNotAtRisk}</div>
+        `;
+      } else if (spinMode === "sideEffect") {
+        legendHTML = `
+          <div class="legend-item"><span class="legend-color" style="background: orange;"></span> ${t.legendSideEffectYes}</div>
+          <div class="legend-item"><span class="legend-color" style="background: lightgreen;"></span> ${t.legendSideEffectNo}</div>
+        `;
+      }
+      document.getElementById('spinLegend').innerHTML = legendHTML;
+    }
+    
+    /***********************
+     * 免责声明确认逻辑
+     ***********************/
+    let disclaimerAccepted = false;
+    document.getElementById('agreeButton').addEventListener('click', function() {
+      disclaimerAccepted = true;
+      document.getElementById('disclaimerModal').style.display = 'none';
+    });
+    
+    // 打印前确认免责声明
+    document.getElementById('printButton').addEventListener('click', function() {
+      if (window.confirm("Please confirm: This tool is for demonstration and risk visualization purposes only and does not constitute medical advice. Do you agree that we are not liable for any consequences?")) {
+        window.print();
+      }
+    });
+    
+    /***********************
+     * 转盘功能实现
+     ***********************/
+    const wheelCanvas = document.getElementById('wheelCanvas');
+    const wheelCtx = wheelCanvas.getContext('2d');
+    let currentRotation = 0;
+    let spinning = false;
+    let spinSegments = []; // 存储每个扇区的信息
+    
+    // 绘制转盘，根据当前模拟项目与参数计算扇区
+    function drawWheel() {
+      const spinMode = document.getElementById('spinModeSelect').value;
+      const baselineRisk = parseFloat(document.getElementById('baselineRisk').value);
+      const hazardRatio = parseFloat(document.getElementById('hazardRatio').value);
+      const sideEffectRisk = parseFloat(document.getElementById('sideEffectRisk').value);
+      
+      let segments = [];
+      if (spinMode === "treatment") {
+        // 对治疗结局，分三扇区：事件发生、获益、未处于风险中
+        let outcome = document.getElementById('outcomeName').value.trim();
+        let treatmentAfterLabel, treatmentSavedLabel;
+        if (outcome) {
+          if (outcome.toLowerCase().includes("recurrence")) {
+            treatmentAfterLabel = "After Treatment " + outcome;
+            treatmentSavedLabel = "Avoided " + outcome;
+          } else if (outcome.toLowerCase().includes("survival")) {
+            treatmentAfterLabel = "After Treatment " + outcome;
+            treatmentSavedLabel = "Survival Benefit";
+          } else {
+            treatmentAfterLabel = texts[currentLanguage].legendTreatmentAfter;
+            treatmentSavedLabel = texts[currentLanguage].legendTreatmentSaved;
+          }
+        } else {
+          treatmentAfterLabel = texts[currentLanguage].legendTreatmentAfter;
+          treatmentSavedLabel = texts[currentLanguage].legendTreatmentSaved;
+        }
+        const p_event = baselineRisk * hazardRatio; 
+        const p_saved = baselineRisk - baselineRisk * hazardRatio;
+        const p_noRisk = 1 - baselineRisk;
+        segments = [
+          { label: treatmentAfterLabel, probability: p_event, color: "#e74c3c" },
+          { label: treatmentSavedLabel, probability: p_saved, color: "#27ae60" },
+          { label: texts[currentLanguage].legendTreatmentNotAtRisk, probability: p_noRisk, color: "lightgreen" }
+        ];
+      } else if (spinMode === "sideEffect") {
+        // 副作用模拟：两扇区
+        segments = [
+          { label: texts[currentLanguage].legendSideEffectYes, probability: sideEffectRisk, color: "orange" },
+          { label: texts[currentLanguage].legendSideEffectNo, probability: 1 - sideEffectRisk, color: "lightgreen" }
+        ];
+      }
+      
+      // 归一化（防止浮点误差）
+      const totalProb = segments.reduce((sum, seg) => sum + seg.probability, 0);
+      segments.forEach(seg => seg.probability /= totalProb);
+      
+      spinSegments = [];
+      const centerX = wheelCanvas.width / 2;
+      const centerY = wheelCanvas.height / 2;
+      const radius = Math.min(centerX, centerY) - 10;
+      
+      wheelCtx.clearRect(0, 0, wheelCanvas.width, wheelCanvas.height);
+      let startAngle = currentRotation;
+      segments.forEach(seg => {
+        const angle = seg.probability * 2 * Math.PI;
+        wheelCtx.beginPath();
+        wheelCtx.moveTo(centerX, centerY);
+        wheelCtx.arc(centerX, centerY, radius, startAngle, startAngle + angle);
+        wheelCtx.closePath();
+        wheelCtx.fillStyle = seg.color;
+        wheelCtx.fill();
+        
+        spinSegments.push({
+          label: seg.label,
+          startAngle: (startAngle % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI),
+          endAngle: ((startAngle + angle) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI)
+        });
+        
+        // 在扇区中绘制文字
+        const midAngle = startAngle + angle / 2;
+        const textX = centerX + (radius / 2) * Math.cos(midAngle);
+        const textY = centerY + (radius / 2) * Math.sin(midAngle);
+        wheelCtx.fillStyle = "#fff";
+        wheelCtx.font = "bold 14px sans-serif";
+        wheelCtx.textAlign = "center";
+        wheelCtx.textBaseline = "middle";
+        wheelCtx.fillText(seg.label, textX, textY);
+        
+        startAngle += angle;
+      });
+      
+      // 绘制指针（三角形，指向顶部）
+      wheelCtx.fillStyle = "#000";
+      wheelCtx.beginPath();
+      wheelCtx.moveTo(centerX, 10);
+      wheelCtx.lineTo(centerX - 10, 30);
+      wheelCtx.lineTo(centerX + 10, 30);
+      wheelCtx.closePath();
+      wheelCtx.fill();
+      
+      updateSpinLegend();
+    }
+    
+    // 转盘旋转动画：初始速度较低、加快减速，使旋转过程较慢但持续时间缩短
+    function spinWheel() {
+      if (spinning) return;
+      spinning = true;
+      document.getElementById('spinResult').innerText = "";
+      // 设定初始角速度（弧度/毫秒）
+      let angularVelocity = Math.random() * 0.005 + 0.015; // 约0.015~0.02 rad/ms
+      const deceleration = 0.00002; // 较高的减速度
+      let lastTime = null;
+      
+      function animate(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        const delta = timestamp - lastTime;
+        lastTime = timestamp;
+        currentRotation += angularVelocity * delta;
+        currentRotation %= 2 * Math.PI;
+        angularVelocity = Math.max(angularVelocity - deceleration * delta, 0);
+        drawWheel();
+        if (angularVelocity > 0) {
+          requestAnimationFrame(animate);
+        } else {
+          spinning = false;
+          // 修正：以指针位置（顶部，标准角度为 -π/2）为基准计算
+          let finalAngle = ((2 * Math.PI - currentRotation - Math.PI/2) % (2 * Math.PI));
+          if(finalAngle < 0) finalAngle += 2 * Math.PI;
+          let resultLabel = "Unknown";
+          for (let seg of spinSegments) {
+            // 判断 finalAngle 是否落在该扇区内
+            if (seg.startAngle < seg.endAngle) {
+              if (finalAngle >= seg.startAngle && finalAngle < seg.endAngle) {
+                resultLabel = seg.label;
+                break;
+              }
+            } else {
+              // 跨越 0 度的情况
+              if (finalAngle >= seg.startAngle || finalAngle < seg.endAngle) {
+                resultLabel = seg.label;
+                break;
+              }
+            }
+          }
+          document.getElementById('spinResult').innerText = texts[currentLanguage].spinResultPrefix + resultLabel;
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+    
+    document.getElementById('spinButton').addEventListener('click', spinWheel);
+    document.getElementById('spinModeSelect').addEventListener('change', function(){
+      drawWheel();
+    });
+    
+    // 转盘模拟显示开关
+    document.getElementById('toggleSpinSimulation').addEventListener('change', function() {
+      document.getElementById('spinSection').style.display = this.checked ? 'block' : 'none';
+    });
+    
+    // 初始调用
+    updateSliderDisplays();
+    updateVisualization();
+    updateLanguageTexts();
+  </script>
+</body>
+</html>
